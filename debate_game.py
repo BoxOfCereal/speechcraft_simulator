@@ -1,18 +1,18 @@
 import os
 from dotenv import load_dotenv
-from groq import Groq
-from llama_index.llms import Groq as LlamaGroq
+from llama_index.llms.groq import Groq
 from llama_index.prompts import PromptTemplate
 
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
 
-# Initialize Groq client
+# Get API key from environment variables
 groq_api_key = os.getenv("GROQ_API_KEY")
 if not groq_api_key:
     raise ValueError("Please set GROQ_API_KEY in your .env file")
 
-llm = LlamaGroq(api_key=groq_api_key)
+# Initialize Groq models
+llm = Groq(model="llama3-8b-8192", api_key=groq_api_key)
 
 class DebateGame:
     def __init__(self, ai_personality=None):
