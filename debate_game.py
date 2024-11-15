@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from llama_index.llms.groq import Groq
-from llama_index.prompts import PromptTemplate
+from llama_index.core import Prompt
 
 # Load environment variables from .env file
 load_dotenv()
@@ -21,53 +21,47 @@ class DebateGame:
         self.ai_personality = ai_personality or "You are a logical and balanced debater who carefully considers all angles of an argument."
         
         # Define prompt templates
-        self.topic_prompt = PromptTemplate(
-            "Generate an interesting and debatable topic that would make for a good discussion. "
+        self.topic_prompt = ("Generate an interesting and debatable topic that would make for a good discussion. "
             "The topic should be thought-provoking but not overly controversial. "
-            "Format: Just return the topic as a single sentence."
-        )
+            "Format: Just return the topic as a single sentence.")
         
-        self.response_prompt = PromptTemplate(
-            "Personality: {personality}\n\n"
+        self.response_prompt = ("Personality: {personality}\n\n"
             "You are participating in a debate on the topic: {topic}\n"
             "Previous arguments:\n{history}\n"
             "Latest argument from opponent: {last_argument}\n"
             "Generate a well-reasoned counter-argument that addresses the points made while staying true to your personality. "
-            "Keep the response concise and focused."
-        )
+            "Keep the response concise and focused.")
         
-        self.evaluation_prompt = PromptTemplate(
-            "Evaluate the following argument in the context of the debate:\n"
+        self.evaluation_prompt = ("Evaluate the following argument in the context of the debate:\n"
             "Topic: {topic}\n"
             "Argument: {argument}\n"
-            "Rate the argument's strength on a scale of 1-10 and provide brief feedback."
-        )
+            "Rate the argument's strength on a scale of 1-10 and provide brief feedback.")
 
     def generate_topic(self):
         """Generate a debate topic using the LLM."""
-        response = llm.complete(str(self.topic_prompt))
+        response = llm.complete(self.topic_prompt)
         self.current_topic = response.text.strip()
         return self.current_topic
 
     def get_ai_response(self, player_argument):
         """Generate AI's response to the player's argument."""
         history = "\n".join([f"- {arg}" for arg in self.debate_history])
-        prompt_args = {
-            "personality": self.ai_personality,
-            "topic": self.current_topic,
-            "history": history,
-            "last_argument": player_argument
-        }
-        response = llm.complete(str(self.response_prompt.format(**prompt_args)))
+        prompt = self.response_prompt.format(
+            personality=self.ai_personality,
+            topic=self.current_topic,
+            history=history,
+            last_argument=player_argument
+        )
+        response = llm.complete(prompt)
         return response.text.strip()
 
     def evaluate_argument(self, argument):
         """Evaluate the strength of an argument."""
-        prompt_args = {
-            "topic": self.current_topic,
-            "argument": argument
-        }
-        response = llm.complete(str(self.evaluation_prompt.format(**prompt_args)))
+        prompt = self.evaluation_prompt.format(
+            topic=self.current_topic,
+            argument=argument
+        )
+        response = llm.complete(prompt)
         return response.text.strip()
 
     def play(self):
@@ -80,7 +74,15 @@ class DebateGame:
         while True:
             # Player's turn
             print("\nYour turn! Make your argument:")
-            player_argument = input("> ")
+            try:
+                player_argument = input("> ")
+                if not player_argument:
+                    print("Thanks for playing!")
+                    break
+            except (EOFError, KeyboardInterrupt):
+                print("\nThanks for playing!")
+                break
+                
             self.debate_history.append(f"Player: {player_argument}")
             
             # Evaluate player's argument
@@ -89,16 +91,15 @@ class DebateGame:
             print(f"Feedback: {evaluation}")
             
             # AI's turn
-            print("\nAI is thinking...")
+            print("\nAI is thinking of a response...")
             ai_response = self.get_ai_response(player_argument)
-            print(f"\nAI's response: {ai_response}")
+            print(f"\nAI: {ai_response}")
             self.debate_history.append(f"AI: {ai_response}")
             
-            # Ask if player wants to continue
-            if input("\nContinue debate? (y/n): ").lower() != 'y':
-                break
-        
-        print("\nThank you for participating in the debate!")
+            # Evaluate AI's argument
+            print("\nEvaluating AI's argument...")
+            evaluation = self.evaluate_argument(ai_response)
+            print(f"Feedback: {evaluation}")
 
 if __name__ == "__main__":
     game = DebateGame()
