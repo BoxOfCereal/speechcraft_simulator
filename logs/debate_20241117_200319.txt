@@ -1,0 +1,4 @@
+[2024-11-17 20:03:19] === Debate Started ===
+[2024-11-17 20:03:19] Game Settings: {'personality': 'Lucien Lachance2', 'audience_type': 'Comedic', 'difficulty': 'normal', 'max_turns': 3, 'scoring_enabled': True, 'support_shift_cap': 5, 'custom_settings': {'debate_style': 'formal', 'evaluate_ai': True}}
+[2024-11-17 20:04:10] Player: you know what yeah why not? We're gonna burn the ocean away anyway with the global warming
+[2024-11-17 20:05:28] === Debate Ended ===

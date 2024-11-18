@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List
 from llama_index.llms.groq import Groq
 
-llm = Groq(model="llama3-8b-8192")
+llm = Groq(model="llama3-8b-8192",temperature=0.5)
 llm_70b = Groq(model="llama3-70b-8192")
 # Load environment variables from .env file
 load_dotenv()
@@ -130,9 +130,7 @@ class DebateGame:
         self.log_file = None
         
         # Define prompt templates
-        self.topic_prompt = ("Generate an unusual and provocative topic that would make for a heated discussion. "
-            "The topic should be absurd or unconventional, possibly combining unrelated concepts in unexpected ways. "
-            "Make it weird but not inappropriate or offensive. "
+        self.topic_prompt = ("Generate a topic that would make for a heated discussion. "
             "Format: Just return the topic as a single sentence.")
         
         self.response_prompt = ("Personality: {personality}\n\n"
@@ -168,10 +166,10 @@ class DebateGame:
             "Player Support: {player_support}%\n"
             "AI Support: {ai_support}%\n\n"
             "Based on your audience personality, evaluate how this argument affected the audience's support:\n"
-            "1. Rate the support shift (-100 to +100, where positive means gaining support)\n"
+            "1. Rate the support shift (-[score] to +[score], where positive means gaining support)\n"
             "2. Describe the audience's reaction and mood\n\n"
             "Format your response exactly as:\n"
-            "Support Shift: [number]\n"
+            "Support Shift: [score]\n"
             "Reaction: [one or two sentences describing the audience reaction and current mood]"
         )
 

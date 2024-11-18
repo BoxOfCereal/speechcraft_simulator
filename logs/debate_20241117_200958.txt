@@ -1,0 +1,4 @@
+[2024-11-17 20:09:58] === Debate Started ===
+[2024-11-17 20:09:58] Game Settings: {'personality': 'Lucien Lachance2', 'audience_type': 'Comedic', 'difficulty': 'normal', 'max_turns': 3, 'scoring_enabled': True, 'support_shift_cap': 5, 'custom_settings': {'debate_style': 'formal', 'evaluate_ai': True}}
+[2024-11-17 20:09:59] Topic: Should the government prioritize funding for universal basic income over existing social welfare programs to address poverty and income inequality?
+[2024-11-17 20:10:18] === Debate Ended ===

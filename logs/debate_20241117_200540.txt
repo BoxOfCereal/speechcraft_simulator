@@ -1,0 +1,4 @@
+[2024-11-17 20:05:40] === Debate Started ===
+[2024-11-17 20:05:40] Game Settings: {'personality': 'Lucien Lachance2', 'audience_type': 'Comedic', 'difficulty': 'normal', 'max_turns': 3, 'scoring_enabled': True, 'support_shift_cap': 5, 'custom_settings': {'debate_style': 'formal', 'evaluate_ai': True}}
+[2024-11-17 20:05:40] Topic: "Should the concept of 'time' be redefined to be measured in units of 'awkward silences' rather than seconds, minutes, and hours, and if so, how would this impact our understanding of personal relationships and social dynamics?"
+[2024-11-17 20:06:37] Player:             "Make it weird but not inappropriate or offensive. "
