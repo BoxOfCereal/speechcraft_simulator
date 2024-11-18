@@ -6,23 +6,10 @@ from datetime import datetime
 from game_settings import GameSettings
 from dataclasses import dataclass, field
 from typing import Dict, List
+from llama_index.llms.groq import Groq
 
-def load_personalities():
-    """Load personalities from the markdown file."""
-    personalities = {}
-    current_personality = None
-    
-    with open("personalities.md", "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if line.startswith("## "):
-                current_personality = line[3:].strip()
-                personalities[current_personality] = ""
-            elif current_personality and line and not line.startswith("#"):
-                personalities[current_personality] += line + "\n"
-    
-    return {name: desc.strip() for name, desc in personalities.items()}
-
+llm = Groq(model="llama3-8b-8192")
+llm_70b = Groq(model="llama3-70b-8192")
 # Load environment variables from .env file
 load_dotenv()
 
@@ -32,7 +19,31 @@ if not groq_api_key:
     raise ValueError("Please set GROQ_API_KEY in your .env file")
 
 # Initialize Groq models
-llm = Groq(model="llama3-8b-8192", api_key=groq_api_key)
+# llm = Groq(model="llama3-8b-8192", api_key=groq_api_key)
+
+def load_markdown_sections(filename: str) -> Dict[str, str]:
+    """Load sections from a markdown file."""
+    sections = {}
+    current_section = None
+    
+    with open(filename, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith("## "):
+                current_section = line[3:].strip()
+                sections[current_section] = ""
+            elif current_section and line and not line.startswith("#"):
+                sections[current_section] += line + "\n"
+    
+    return {name: desc.strip() for name, desc in sections.items()}
+
+def load_personalities():
+    """Load personalities from the markdown file."""
+    return load_markdown_sections("personalities.md")
+
+def load_audience_types():
+    """Load audience types from the markdown file."""
+    return load_markdown_sections("audience_types.md")
 
 @dataclass
 class PlayerScore:
@@ -82,8 +93,8 @@ class AudienceReaction:
     reaction: str = ""
     current_support: Dict[str, int] = field(default_factory=lambda: {"player": 50, "ai": 50})
     
-    def update_support(self, support_shift: int, for_player: bool):
-        max_shift = min(abs(support_shift), 20)  # Limit maximum shift per turn
+    def update_support(self, support_shift: int, for_player: bool, shift_cap: int = 10):
+        max_shift = min(abs(support_shift), shift_cap)  # Limit maximum shift per turn based on settings
         actual_shift = max_shift if support_shift > 0 else -max_shift
         
         if for_player:
@@ -99,6 +110,7 @@ class DebateGame:
         self.current_topic = None
         self.settings = settings or GameSettings.default()
         self.personalities = load_personalities()
+        self.audience_types = load_audience_types()
         self.scores = DebateScores()
         self.round_number = 0
         self.audience_reactions = []
@@ -107,6 +119,12 @@ class DebateGame:
         self.ai_personality = self.personalities.get(
             self.settings.personality,
             self.personalities.get("Unhinged")
+        )
+        
+        # Load audience personality
+        self.audience_personality = self.audience_types.get(
+            self.settings.audience_type,
+            self.audience_types.get("Academic")
         )
         
         self.log_file = None
@@ -142,14 +160,14 @@ class DebateGame:
         )
         
         self.audience_prompt = (
-            "You are the audience of this debate. You represent a diverse crowd with various viewpoints.\n\n"
+            "You are the audience of this debate with the following personality:\n{audience_personality}\n\n"
             "Topic: {topic}\n"
             "Current Debate Context:\n{history}\n\n"
             "Latest {participant} Argument: {argument}\n\n"
             "Current Audience Support:\n"
             "Player Support: {player_support}%\n"
             "AI Support: {ai_support}%\n\n"
-            "Evaluate how this argument affected the audience's support:\n"
+            "Based on your audience personality, evaluate how this argument affected the audience's support:\n"
             "1. Rate the support shift (-100 to +100, where positive means gaining support)\n"
             "2. Describe the audience's reaction and mood\n\n"
             "Format your response exactly as:\n"
@@ -261,6 +279,7 @@ class DebateGame:
         current_support = self.audience_reactions[-1].current_support if self.audience_reactions else {"player": 50, "ai": 50}
         
         prompt = self.audience_prompt.format(
+            audience_personality=self.audience_personality,
             topic=self.current_topic,
             history="\n".join(f"Turn {i+1}: {arg}" for i, arg in enumerate(self.debate_history)),
             participant="Player" if is_player else "AI",
@@ -286,7 +305,7 @@ class DebateGame:
         
         audience_reaction = AudienceReaction(support_shift=support_shift, reaction=reaction)
         audience_reaction.current_support = current_support.copy()
-        audience_reaction.update_support(support_shift, is_player)
+        audience_reaction.update_support(support_shift, is_player, self.settings.support_shift_cap)
         
         self.audience_reactions.append(audience_reaction)
         return audience_reaction
@@ -317,6 +336,7 @@ class DebateGame:
         
         print("Welcome to the AI Debate Game!")
         print(f"\nPersonality: {self.settings.personality}")
+        print(f"Audience Type: {self.settings.audience_type}")
         print("\nGenerating a topic for debate...")
         topic = self.generate_topic()
         print(f"\nToday's debate topic: {topic}")
@@ -399,8 +419,10 @@ class DebateGame:
 if __name__ == "__main__":
     # Example of creating a game with custom settings
     settings = GameSettings(
-        personality="Lucien Lachance",
+        personality="Lucien Lachance2",
+        audience_type="Comedic",  # Set the audience type
         max_turns=3,  # Set number of debate rounds
+        support_shift_cap=5,  # Limit support shifts to 5% per turn
         custom_settings={"debate_style": "formal", "evaluate_ai": True}
     )
     

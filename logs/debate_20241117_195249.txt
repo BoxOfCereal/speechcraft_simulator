@@ -1,0 +1,2 @@
+[2024-11-17 19:52:49] === Debate Started ===
+[2024-11-17 19:52:49] Game Settings: {'personality': 'Lucien Lachance2', 'audience_type': 'Comedic', 'difficulty': 'normal', 'max_turns': 3, 'scoring_enabled': True, 'support_shift_cap': 5, 'custom_settings': {'debate_style': 'formal', 'evaluate_ai': True}}

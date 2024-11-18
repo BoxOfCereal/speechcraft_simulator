@@ -5,9 +5,11 @@ from typing import Optional, Dict, Any
 class GameSettings:
     """Class to handle all game settings and configurations."""
     personality: str = "Unhinged"  # Default personality
+    audience_type: str = "Academic"  # Default audience type
     difficulty: str = "normal"     # For future difficulty settings
     max_turns: int = 10           # For future turn limit implementation
     scoring_enabled: bool = True   # For future scoring system toggle
+    support_shift_cap: int = 10    # Maximum percentage that support can shift per turn
     custom_settings: Dict[str, Any] = field(default_factory=dict)  # For any additional settings
 
     @classmethod
@@ -32,9 +34,11 @@ class GameSettings:
         """Convert settings to dictionary format."""
         return {
             'personality': self.personality,
+            'audience_type': self.audience_type,
             'difficulty': self.difficulty,
             'max_turns': self.max_turns,
             'scoring_enabled': self.scoring_enabled,
+            'support_shift_cap': self.support_shift_cap,
             'custom_settings': self.custom_settings
         }
 
