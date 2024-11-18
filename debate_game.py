@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List
 from llama_index.llms.groq import Groq
 
-llm = Groq(model="llama3-8b-8192",temperature=0.5)
+llm = Groq(model="llama3-8b-8192",temperature=0.25)
 llm_70b = Groq(model="llama3-70b-8192")
 # Load environment variables from .env file
 load_dotenv()
@@ -105,7 +105,7 @@ class AudienceReaction:
             self.current_support["player"] = min(100, max(0, self.current_support["player"] - actual_shift))
 
 class DebateGame:
-    def __init__(self, settings: GameSettings = None):
+    def __init__(self, settings: GameSettings = None, debug_mode: bool = False):
         self.debate_history = []
         self.current_topic = None
         self.settings = settings or GameSettings.default()
@@ -114,6 +114,7 @@ class DebateGame:
         self.scores = DebateScores()
         self.round_number = 0
         self.audience_reactions = []
+        self.debug_mode = debug_mode
         
         # Load personality based on settings
         self.ai_personality = self.personalities.get(
@@ -142,36 +143,52 @@ class DebateGame:
         
         self.evaluation_prompt = (
             "You are judging a debate argument. Review the full context and score ONLY the {participant}'s most recent argument.\n\n"
-            "Topic: {topic}\n"
+            "Debate Topic: {topic}\n"
             "Full Debate Context:\n{history}\n\n"
             "Score the {participant}'s argument on these criteria:\n"
-            "1. Strategy (1-10): How well-structured and effective is the argumentation?\n"
-            "2. Sophistry (1-10): How clever or persuasive are the rhetorical techniques used?\n"
-            "3. Morality (1-10): How ethically sound is the argument's reasoning?\n"
+            "1. Strategy (1-10)\n"
+            "2. Sophistry (1-10)\n"
+            "3. Morality (1-10)\n"
             "4. Experience Points (0-100): Overall performance considering creativity, engagement, and impact\n\n"
             "Format scores exactly as:\n"
-            "Strategy: [score] - [one-line explanation]\n"
-            "Sophistry: [score] - [one-line explanation]\n"
-            "Morality: [score] - [one-line explanation]\n"
-            "Experience: [score] - [one-line explanation]\n"
+            "Strategy: [score] \n"
+            "Sophistry: [score] \n"
+            "Morality: [score] \n"
+            "Experience: [score] \n"
             "Overall: [brief summary of strongest and weakest points]"
+            # "Format scores exactly as:\n"
+            # "Strategy: [score] - [one-line explanation]\n"
+            # "Sophistry: [score] - [one-line explanation]\n"
+            # "Morality: [score] - [one-line explanation]\n"
+            # "Experience: [score] - [one-line explanation]\n"
+            # "Overall: [brief summary of strongest and weakest points]"
         )
         
         self.audience_prompt = (
             "You are the audience of this debate with the following personality:\n{audience_personality}\n\n"
-            "Topic: {topic}\n"
+            "Debate Topic: {topic}\n"
             "Current Debate Context:\n{history}\n\n"
             "Latest {participant} Argument: {argument}\n\n"
             "Current Audience Support:\n"
             "Player Support: {player_support}%\n"
             "AI Support: {ai_support}%\n\n"
             "Based on your audience personality, evaluate how this argument affected the audience's support:\n"
+            "Make sure you are only judging the {participant}'s most recent argument.\n"
             "1. Rate the support shift (-[score] to +[score], where positive means gaining support)\n"
             "2. Describe the audience's reaction and mood\n\n"
             "Format your response exactly as:\n"
             "Support Shift: [score]\n"
             "Reaction: [one or two sentences describing the audience reaction and current mood]"
         )
+
+    def _debug_print(self, message: str):
+        """Print debug information if debug mode is enabled."""
+        if self.debug_mode:
+            print("\n=== DEBUG INFO START ===")
+            print("-" * 50)
+            print(message)
+            print("-" * 50)
+            print("=== DEBUG INFO END ===\n")
 
     def start_logging(self):
         """Start logging the debate conversation."""
@@ -189,6 +206,7 @@ class DebateGame:
 
     def generate_topic(self):
         """Generate a debate topic using the LLM."""
+        self._debug_print(f"Topic Generation Prompt:\n{self.topic_prompt}")
         response = llm.complete(self.topic_prompt)
         self.current_topic = response.text.strip()
         self.log_message(f"Topic: {self.current_topic}")
@@ -203,6 +221,7 @@ class DebateGame:
             history=history,
             last_argument=player_argument
         )
+        self._debug_print(f"AI Response Prompt:\n{prompt}")
         response = llm.complete(prompt)
         ai_response = response.text.strip()
         self.log_message(f"AI: {ai_response}")
@@ -222,6 +241,7 @@ class DebateGame:
             topic=self.current_topic,
             history=history
         )
+        self._debug_print(f"Evaluation Prompt:\n{prompt}")
         
         response = llm.complete(prompt)
         evaluation = response.text.strip()
@@ -285,6 +305,7 @@ class DebateGame:
             player_support=current_support["player"],
             ai_support=current_support["ai"]
         )
+        self._debug_print(f"Audience Reaction Prompt:\n{prompt}")
         
         response = llm.complete(prompt)
         reaction_text = response.text.strip()
@@ -418,11 +439,11 @@ if __name__ == "__main__":
     # Example of creating a game with custom settings
     settings = GameSettings(
         personality="Lucien Lachance2",
-        audience_type="Comedic",  # Set the audience type
-        max_turns=3,  # Set number of debate rounds
-        support_shift_cap=5,  # Limit support shifts to 5% per turn
-        custom_settings={"debate_style": "formal", "evaluate_ai": True}
+        audience_type="Academic",
+        max_turns=3,
+        support_shift_cap=10
     )
     
-    game = DebateGame(settings)
+    # Create game instance with debug mode enabled
+    game = DebateGame(settings=settings, debug_mode=True)
     game.play()
